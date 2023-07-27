@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using EhBeats.Data;
 using EhBeats.Models;
 using Microsoft.AspNetCore.Authorization;
+using NuGet.Packaging;
 
 namespace EhBeats.Controllers
 {
@@ -25,39 +26,93 @@ namespace EhBeats.Controllers
             return RedirectToAction(nameof(MyPlaylists));
         }
 
-        public async Task<IActionResult> MyPlaylists ()
+        public async Task<IActionResult> MyPlaylists()
         {
-              return _context.Playlists != null ? 
-                          View(await _context.Playlists.ToListAsync()) :
-                          Problem("Entity set 'EhBeatsContext.Playlists'  is null.");
+            return _context.Playlists != null ?
+                        View(await _context.Playlists.ToListAsync()) :
+                        Problem("Entity set 'EhBeatsContext.Playlists'  is null.");
         }
 
         public async Task<IActionResult> AddSongsToPlaylist(int? id, AddSongsToPlaylistViewModel? viewModel)
         {
-            if (id == null || _context.Playlists == null)
+            if (id == null || viewModel == null || _context.Playlists == null)
             {
                 return NotFound();
             }
 
+            int playlistId = id.Value;
+
             if (ModelState.IsValid)
             {
-                var songsInPlaylist = _context.PlaylistSongs
+                viewModel.PlaylistId = playlistId;
+
+                var inPlaylist = _context.PlaylistSongs
                     .Include(sip => sip.Song)
-                    .Where(sip => sip.PlaylistId == id && sip.Song!.ArtistId == viewModel!.ArtistId)
+                    .Where(sip => sip.PlaylistId == playlistId && sip.Song!.ArtistId == viewModel.ArtistId)
                     .Select(sip => sip.Song)
                     ;
 
                 var notInPlaylist = _context.Songs
-                    .Where(s => s.ArtistId == viewModel!.ArtistId && !songsInPlaylist.Contains(s))
-                    .ToList()
+                    .Where(s => s.ArtistId == viewModel.ArtistId && !inPlaylist.Contains(s))
                     ;
 
-                return RedirectToAction(nameof(MyPlaylists));
-            }   
+                var songsNotInPlaylist = await notInPlaylist.ToDictionaryAsync(s => s, s => false);
+                var songsInPlaylist = await inPlaylist.ToDictionaryAsync(s => s!, s => true);
+
+                viewModel.Songs = new Dictionary<Song, bool>();
+                viewModel.Songs.AddRange(songsNotInPlaylist);
+                viewModel.Songs.AddRange(songsInPlaylist);
+            }
 
             ViewData["ArtistId"] = new SelectList(await _context.Artists.OrderBy(a => a.LastName).ToListAsync(), nameof(Artist.Id), nameof(Artist.FullName), viewModel.ArtistId);
 
-            return View();
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddSong(int? playlistId, int? songId)
+        {
+            if (playlistId == null || songId == null || _context.Playlists == null || _context.Songs == null)
+            {
+                return NotFound();
+            }
+
+            Song? song = await _context.Songs.FindAsync(songId.Value);
+
+            if (!PlaylistExists(playlistId.Value) || song == null)
+            {
+                return NotFound();
+            }
+
+            await _context.AddAsync(new PlaylistSong { PlaylistId = playlistId.Value, SongId = songId.Value });
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(AddSongsToPlaylist), new { id = playlistId, artistId = song.ArtistId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveSong(int? playlistId, int? songId)
+        {
+            if (playlistId == null || songId == null || _context.Playlists == null || _context.Songs == null)
+            {
+                return NotFound();
+            }
+
+            PlaylistSong? playlistSong = await _context.PlaylistSongs.Where(ps => ps.PlaylistId == playlistId.Value && ps.SongId == songId.Value)
+                .Include(ps => ps.Song)
+                .SingleOrDefaultAsync();
+
+            if(playlistSong == null)
+            {
+                return NotFound();
+            }
+
+            _context.PlaylistSongs.Remove(playlistSong);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(AddSongsToPlaylist), new { id = playlistId, artistId = playlistSong.Song!.ArtistId });
         }
 
 
@@ -103,7 +158,12 @@ namespace EhBeats.Controllers
 
         private bool PlaylistExists(int id)
         {
-          return (_context.Playlists?.Any(e => e.Id == id)).GetValueOrDefault();
+            return (_context.Playlists?.Any(e => e.Id == id)).GetValueOrDefault();
+        }
+
+        private bool SongsExists(int id)
+        {
+            return (_context.Songs?.Any(e => e.Id == id)).GetValueOrDefault();
         }
     }
 }
