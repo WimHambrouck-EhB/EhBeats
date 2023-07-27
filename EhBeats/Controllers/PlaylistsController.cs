@@ -26,6 +26,7 @@ namespace EhBeats.Controllers
             return RedirectToAction(nameof(MyPlaylists));
         }
 
+        [Authorize]
         public async Task<IActionResult> MyPlaylists()
         {
             return _context.Playlists != null ?
@@ -33,6 +34,7 @@ namespace EhBeats.Controllers
                         Problem("Entity set 'EhBeatsContext.Playlists'  is null.");
         }
 
+        [Authorize]
         public async Task<IActionResult> AddSongsToPlaylist(int? id, AddSongsToPlaylistViewModel? viewModel)
         {
             if (id == null || viewModel == null || _context.Playlists == null)
@@ -71,6 +73,7 @@ namespace EhBeats.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize]
         public async Task<IActionResult> AddSong(int? playlistId, int? songId)
         {
             if (playlistId == null || songId == null || _context.Playlists == null || _context.Songs == null)
@@ -93,6 +96,7 @@ namespace EhBeats.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize]
         public async Task<IActionResult> RemoveSong(int? playlistId, int? songId)
         {
             if (playlistId == null || songId == null || _context.Playlists == null || _context.Songs == null)
@@ -117,6 +121,7 @@ namespace EhBeats.Controllers
 
 
         // GET: Playlists/Details/5
+        [Authorize]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null || _context.Playlists == null)
@@ -125,6 +130,9 @@ namespace EhBeats.Controllers
             }
 
             var playlist = await _context.Playlists
+                .Include(p => p.Songs!)
+                .ThenInclude(ps => ps.Song)
+                .ThenInclude(s => s!.Artist)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (playlist == null)
             {
@@ -135,6 +143,7 @@ namespace EhBeats.Controllers
         }
 
         // GET: Playlists/Create
+        [Authorize]
         public IActionResult Create()
         {
             return View();
@@ -145,6 +154,7 @@ namespace EhBeats.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize]
         public async Task<IActionResult> Create([Bind("Id,Name,Description")] Playlist playlist)
         {
             if (ModelState.IsValid)
@@ -159,11 +169,6 @@ namespace EhBeats.Controllers
         private bool PlaylistExists(int id)
         {
             return (_context.Playlists?.Any(e => e.Id == id)).GetValueOrDefault();
-        }
-
-        private bool SongsExists(int id)
-        {
-            return (_context.Songs?.Any(e => e.Id == id)).GetValueOrDefault();
         }
     }
 }

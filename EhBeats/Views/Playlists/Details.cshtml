@@ -22,9 +22,63 @@
         <dd class = "col-sm-10">
             @Html.DisplayFor(model => model.Description)
         </dd>
+        <dt class="col-sm-2">
+            Number of songs
+        </dt>
+        <dd class="col-sm-10">
+            @(Model.Songs?.Count() ?? 0)
+        </dd>
     </dl>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
+@if (Model.Songs != null)
+{
+    <table class="table">
+        @{
+            var songModel = Model.Songs.First();
+        }
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => songModel.Song!.Title)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => songModel.Song!.Artist)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => songModel.Song!.BPM)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => songModel.Song!.Danceability)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => songModel.Song!.Explicit)
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (PlaylistSong ps in Model.Songs)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => ps.Song!.Title)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => ps.Song!.Artist!.FullName)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => ps.Song!.BPM)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => ps.Song!.Danceability)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => ps.Song!.Explicit)
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+<div>    
     <a asp-action="Index">Back to List</a>
 </div>
