@@ -7,6 +7,7 @@ builder.Services.AddDbContext<EhBeatsContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("EhBeatsContext") ?? throw new InvalidOperationException("Connection string 'EhBeatsContext' not found.")));
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<EhBeatsContext>();
 
 // Add services to the container.
