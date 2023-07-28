@@ -9,16 +9,19 @@ using EhBeats.Data;
 using EhBeats.Models;
 using Microsoft.AspNetCore.Authorization;
 using NuGet.Packaging;
+using Microsoft.AspNetCore.Identity;
 
 namespace EhBeats.Controllers
 {
     public class PlaylistsController : Controller
     {
         private readonly EhBeatsContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public PlaylistsController(EhBeatsContext context)
+        public PlaylistsController(EhBeatsContext context, UserManager<IdentityUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public IActionResult Index()
@@ -159,10 +162,79 @@ namespace EhBeats.Controllers
         {
             if (ModelState.IsValid)
             {
+                var currentUser = await _userManager.GetUserAsync(User);
+                playlist.IdentityUserId = currentUser.Id;
                 _context.Add(playlist);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(MyPlaylists));
             }
+            return View(playlist);
+        }
+
+        [Authorize]
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null || _context.Playlists == null)
+            {
+                return NotFound();
+            }            
+
+            var playlist = await _context.Playlists.FindAsync(id);
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            if (playlist == null || playlist.IdentityUserId != currentUser.Id)
+            {
+                return NotFound();
+            }
+            return View(playlist);
+        }
+
+        // POST: PlaylistsTemp/Edit/5
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize] 
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description")] Playlist playlist)
+        {
+            if (id != playlist.Id)
+            {
+                return NotFound();
+            }
+
+            var previousPlaylist = await _context.Playlists.FindAsync(id);
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            if (previousPlaylist == null || previousPlaylist.IdentityUserId != currentUser.Id)
+            {
+                return NotFound();
+            }
+
+            previousPlaylist.Name = playlist.Name;
+            previousPlaylist.Description = playlist.Description;
+
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(previousPlaylist);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!PlaylistExists(previousPlaylist.Id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                return RedirectToAction(nameof(Index));
+            }
+            ViewData["IdentityUserId"] = new SelectList(_context.Users, "Id", "Id", playlist.IdentityUserId);
             return View(playlist);
         }
 

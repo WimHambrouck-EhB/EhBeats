@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
 
 namespace EhBeats.Models
 {
@@ -13,5 +14,8 @@ namespace EhBeats.Models
 
         public ICollection<PlaylistSong>? Songs { get; set; }
 
+        public string? IdentityUserId { get; set; }
+
+        public IdentityUser? IdentityUser{ get; set; }
     }
 }
