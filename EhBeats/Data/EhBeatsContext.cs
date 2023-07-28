@@ -4,10 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using EhBeats.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace EhBeats.Data
 {
-    public class EhBeatsContext : DbContext
+    public class EhBeatsContext : IdentityDbContext<IdentityUser>
     {
         public EhBeatsContext(DbContextOptions<EhBeatsContext> options)
             : base(options)
