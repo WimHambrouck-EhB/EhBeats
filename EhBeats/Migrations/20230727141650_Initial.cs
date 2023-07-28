@@ -87,11 +87,6 @@ namespace EhBeats.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.InsertData(
-                table: "Artists",
-                columns: new[] { "Id", "FirstName", "LastName" },
-                values: new object[] { 1, "The", "Beatles" });
-
             migrationBuilder.CreateIndex(
                 name: "IX_PlaylistSong_PlaylistId",
                 table: "PlaylistSong",

@@ -9,11 +9,13 @@ namespace EhBeats.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+
             migrationBuilder.InsertData(
                 table: "Artists",
                 columns: new[] { "Id", "FirstName", "LastName" },
                 values: new object[,]
                 {
+                    { 1, "The", "Beatles" },
                     { 2, "The", "Rolling Stones" },
                     { 3, null, "Aphex Twin" }
                 });
